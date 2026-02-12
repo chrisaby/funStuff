@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Game Launcher</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --mac-beige: #F2F0E6;
+    --mac-dark: #D5D0C0;
+    --mac-shadow: #B8B3A3;
+    --sky-blue: #5C94FC;
+    --mario-red: #E52521;
+    --mario-gold: #FBD000;
+    --mario-green: #00A800;
+    --block-brown: #C84C0C;
+  }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #7B7B7B;
+    font-family: 'Press Start 2P', monospace;
+    overflow: hidden;
+  }
+
+  /* Scanline overlay on body */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  /* Mac monitor frame */
+  .mac-frame {
+    background: linear-gradient(180deg, #F5F3EA 0%, var(--mac-beige) 20%, var(--mac-dark) 100%);
+    border-radius: 24px;
+    padding: 24px 24px 60px;
+    box-shadow:
+      0 4px 0 #A8A393,
+      0 8px 0 #8E8A7B,
+      0 20px 60px rgba(0,0,0,0.5),
+      inset 0 1px 0 rgba(255,255,255,0.6);
+    position: relative;
+    max-width: 700px;
+    width: 92vw;
+  }
+
+  /* Top bezel details */
+  .mac-bezel-top {
+    text-align: center;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .mac-bezel-top span {
+    font-size: 8px;
+    color: #8E8A7B;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  /* CRT screen area */
+  .crt-screen {
+    background: var(--sky-blue);
+    border-radius: 12px;
+    border: 3px solid #2A2A2A;
+    box-shadow:
+      inset 0 0 40px rgba(0,0,0,0.15),
+      inset 0 0 80px rgba(0,0,0,0.05),
+      0 2px 0 rgba(255,255,255,0.3);
+    overflow: hidden;
+    position: relative;
+    min-height: 420px;
+  }
+
+  /* Pixel sky background */
+  .sky-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(180deg, #5C94FC 0%, #5C94FC 60%, #88B4FC 60%, #88B4FC 100%);
+  }
+
+  /* Pixel clouds */
+  .cloud {
+    position: absolute;
+    background: #fff;
+    border-radius: 0;
+    image-rendering: pixelated;
+  }
+  .cloud::before, .cloud::after {
+    content: '';
+    position: absolute;
+    background: #fff;
+  }
+  .cloud-1 {
+    width: 48px; height: 16px;
+    top: 30px; left: 10%;
+    animation: cloud-drift 18s linear infinite;
+  }
+  .cloud-1::before { width: 16px; height: 16px; top: -16px; left: 8px; }
+  .cloud-1::after { width: 16px; height: 16px; top: -16px; left: 24px; }
+  .cloud-2 {
+    width: 64px; height: 16px;
+    top: 60px; right: 15%;
+    animation: cloud-drift 24s linear infinite;
+    animation-delay: -8s;
+  }
+  .cloud-2::before { width: 16px; height: 16px; top: -16px; left: 16px; }
+  .cloud-2::after { width: 24px; height: 16px; top: -16px; left: 32px; }
+  .cloud-3 {
+    width: 40px; height: 12px;
+    top: 45px; left: 50%;
+    animation: cloud-drift 22s linear infinite;
+    animation-delay: -14s;
+  }
+  .cloud-3::before { width: 12px; height: 12px; top: -12px; left: 8px; }
+  .cloud-3::after { width: 12px; height: 12px; top: -12px; left: 20px; }
+
+  @keyframes cloud-drift {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(60px); }
+  }
+
+  /* Screen content */
+  .screen-content {
+    position: relative;
+    z-index: 2;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 420px;
+  }
+
+  /* Title */
+  .title {
+    font-size: clamp(12px, 3vw, 20px);
+    color: #fff;
+    text-shadow:
+      2px 2px 0 #000,
+      -1px -1px 0 #000,
+      1px -1px 0 #000,
+      -1px 1px 0 #000;
+    margin-bottom: 8px;
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  .subtitle {
+    font-size: clamp(7px, 1.5vw, 10px);
+    color: var(--mario-gold);
+    text-shadow: 1px 1px 0 #000;
+    margin-bottom: 30px;
+    letter-spacing: 2px;
+  }
+
+  /* Coin counter */
+  .coin-counter {
+    font-size: 10px;
+    color: #fff;
+    text-shadow: 1px 1px 0 #000;
+    position: absolute;
+    top: 16px;
+    right: 24px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .coin-icon {
+    width: 12px;
+    height: 14px;
+    background: var(--mario-gold);
+    border-radius: 50%;
+    border: 2px solid #C88400;
+    display: inline-block;
+    animation: coin-spin 1.5s ease-in-out infinite;
+  }
+  @keyframes coin-spin {
+    0%, 100% { transform: scaleX(1); }
+    50% { transform: scaleX(0.2); }
+  }
+
+  /* Game blocks grid */
+  .game-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    justify-content: center;
+    align-items: stretch;
+    width: 100%;
+    max-width: 500px;
+  }
+
+  /* Question block game card */
+  .game-block {
+    display: block;
+    width: 180px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+    position: relative;
+  }
+  .game-block:hover {
+    transform: translateY(-6px);
+  }
+  .game-block:active {
+    transform: translateY(-2px);
+  }
+
+  .block-top {
+    width: 100%;
+    aspect-ratio: 1;
+    background:
+      linear-gradient(135deg, #F8B800 0%, #E8A000 50%, #D09000 100%);
+    border: 4px solid #704000;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-shadow:
+      inset 4px 4px 0 rgba(255,255,255,0.3),
+      inset -4px -4px 0 rgba(0,0,0,0.2);
+    transition: box-shadow 0.15s ease;
+    overflow: hidden;
+  }
+  .game-block:hover .block-top {
+    box-shadow:
+      inset 4px 4px 0 rgba(255,255,255,0.3),
+      inset -4px -4px 0 rgba(0,0,0,0.2),
+      0 0 20px rgba(251,208,0,0.5);
+  }
+
+  /* Block inner decoration - bolts */
+  .block-top::before {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    border: 3px solid #A06800;
+    border-radius: 2px;
+  }
+
+  /* Game icon in block */
+  .game-icon {
+    font-size: 48px;
+    z-index: 1;
+    image-rendering: pixelated;
+    filter: drop-shadow(2px 2px 0 rgba(0,0,0,0.3));
+    transition: transform 0.3s ease;
+  }
+  .game-block:hover .game-icon {
+    animation: icon-bounce 0.4s ease;
+  }
+  @keyframes icon-bounce {
+    0% { transform: translateY(0); }
+    40% { transform: translateY(-10px); }
+    70% { transform: translateY(-4px); }
+    100% { transform: translateY(0); }
+  }
+
+  /* Question mark shimmer */
+  .block-shimmer {
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.25) 50%, transparent 100%);
+    animation: shimmer 3s ease-in-out infinite;
+  }
+  @keyframes shimmer {
+    0%, 70%, 100% { left: -100%; }
+    85% { left: 100%; }
+  }
+
+  .game-label {
+    text-align: center;
+    margin-top: 10px;
+    font-size: clamp(8px, 1.8vw, 11px);
+    color: #fff;
+    text-shadow: 1px 1px 0 #000;
+    line-height: 1.5;
+  }
+
+  /* Ground bricks */
+  .ground {
+    position: absolute;
+    bottom: 0;
+    left: 0; right: 0;
+    height: 48px;
+    background:
+      repeating-linear-gradient(
+        90deg,
+        var(--block-brown) 0px,
+        var(--block-brown) 30px,
+        #A03808 30px,
+        #A03808 32px
+      );
+    border-top: 4px solid #F8B800;
+  }
+  .ground::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 24px;
+    background:
+      repeating-linear-gradient(
+        90deg,
+        var(--block-brown) 0px,
+        var(--block-brown) 30px,
+        #A03808 30px,
+        #A03808 32px
+      );
+    background-position: 16px 0;
+    top: 24px;
+  }
+  .ground::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: rgba(255,255,255,0.15);
+  }
+
+  /* Animated sprites */
+  .mushroom {
+    position: absolute;
+    bottom: 48px;
+    right: 30px;
+    width: 28px;
+    height: 28px;
+    z-index: 3;
+    animation: mushroom-hop 2s ease-in-out infinite;
+  }
+  .mushroom-cap {
+    width: 28px;
+    height: 16px;
+    background: var(--mario-red);
+    border-radius: 14px 14px 0 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .mushroom-cap::before {
+    content: '';
+    position: absolute;
+    width: 10px; height: 10px;
+    background: #fff;
+    border-radius: 50%;
+    top: 3px; left: 3px;
+  }
+  .mushroom-cap::after {
+    content: '';
+    position: absolute;
+    width: 8px; height: 8px;
+    background: #fff;
+    border-radius: 50%;
+    top: 2px; right: 4px;
+  }
+  .mushroom-stem {
+    width: 16px;
+    height: 10px;
+    background: #F8D8B0;
+    margin: 0 auto;
+    border-radius: 0 0 4px 4px;
+  }
+  @keyframes mushroom-hop {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+  }
+
+  /* Floating coins */
+  .floating-coin {
+    position: absolute;
+    width: 12px;
+    height: 16px;
+    background: var(--mario-gold);
+    border: 2px solid #C88400;
+    border-radius: 50%;
+    z-index: 3;
+    animation: float-coin 2.5s ease-in-out infinite;
+  }
+  .floating-coin:nth-child(1) { top: 100px; left: 8%; animation-delay: 0s; }
+  .floating-coin:nth-child(2) { top: 140px; left: 4%; animation-delay: 0.8s; }
+  .floating-coin:nth-child(3) { top: 85px; right: 6%; animation-delay: 0.4s; }
+  @keyframes float-coin {
+    0%, 100% { transform: translateY(0) scaleX(1); }
+    25% { transform: translateY(-8px) scaleX(0.3); }
+    50% { transform: translateY(-4px) scaleX(1); }
+    75% { transform: translateY(-10px) scaleX(0.3); }
+  }
+
+  /* Bottom of mac - disk slot and badge */
+  .mac-bottom {
+    position: absolute;
+    bottom: 16px;
+    left: 0; right: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .disk-slot {
+    width: 120px;
+    height: 6px;
+    background: #C5C0B0;
+    border-radius: 3px;
+    box-shadow:
+      inset 0 1px 2px rgba(0,0,0,0.3),
+      0 1px 0 rgba(255,255,255,0.5);
+  }
+  .mac-badge {
+    font-size: 7px;
+    color: #8E8A7B;
+    letter-spacing: 2px;
+    font-family: 'Press Start 2P', monospace;
+  }
+
+  /* Pipe decorations */
+  .pipe {
+    position: absolute;
+    bottom: 48px;
+    z-index: 3;
+  }
+  .pipe-top {
+    width: 40px;
+    height: 16px;
+    background: var(--mario-green);
+    border: 3px solid #006800;
+    border-radius: 4px 4px 0 0;
+    margin-left: -4px;
+  }
+  .pipe-body {
+    width: 32px;
+    height: 30px;
+    background: var(--mario-green);
+    border-left: 3px solid #006800;
+    border-right: 3px solid #006800;
+  }
+  .pipe-left { left: 20px; }
+  .pipe-right { right: 20px; }
+
+  /* Responsive */
+  @media (max-width: 500px) {
+    .mac-frame { padding: 16px 12px 50px; border-radius: 18px; }
+    .crt-screen { min-height: 380px; }
+    .screen-content { padding: 16px 12px; }
+    .game-grid { gap: 16px; }
+    .game-block { width: 140px; }
+    .game-icon { font-size: 36px; }
+    .title { margin-bottom: 6px; }
+    .subtitle { margin-bottom: 20px; }
+    .ground { height: 36px; }
+    .mushroom { display: none; }
+    .pipe { display: none; }
+    .floating-coin { display: none; }
+  }
+
+  @media (max-width: 360px) {
+    .game-block { width: 120px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="mac-frame">
+  <div class="mac-bezel-top">
+    <span>Fun Stuff</span>
+  </div>
+
+  <div class="crt-screen">
+    <div class="sky-bg">
+      <div class="cloud cloud-1"></div>
+      <div class="cloud cloud-2"></div>
+      <div class="cloud cloud-3"></div>
+    </div>
+
+    <div class="floating-coin"></div>
+    <div class="floating-coin"></div>
+    <div class="floating-coin"></div>
+
+    <div class="screen-content">
+      <div class="coin-counter">
+        <span class="coin-icon"></span>
+        x <span id="game-count">2</span>
+      </div>
+
+      <div class="title">SELECT GAME</div>
+      <div class="subtitle">~ PRESS START ~</div>
+
+      <div class="game-grid">
+        <a href="vibe/marbles/index.html" class="game-block">
+          <div class="block-top">
+            <div class="block-shimmer"></div>
+            <span class="game-icon">&#x1F3B1;</span>
+          </div>
+          <div class="game-label">Marble<br>Solitaire</div>
+        </a>
+
+        <a href="strive/snake/index.html" class="game-block">
+          <div class="block-top">
+            <div class="block-shimmer"></div>
+            <span class="game-icon">&#x1F40D;</span>
+          </div>
+          <div class="game-label">Snake</div>
+        </a>
+      </div>
+    </div>
+
+    <!-- Ground bricks -->
+    <div class="ground"></div>
+
+    <!-- Pipes -->
+    <div class="pipe pipe-left">
+      <div class="pipe-top"></div>
+      <div class="pipe-body"></div>
+    </div>
+    <div class="pipe pipe-right">
+      <div class="pipe-top"></div>
+      <div class="pipe-body"></div>
+    </div>
+
+    <!-- Mushroom -->
+    <div class="mushroom">
+      <div class="mushroom-cap"></div>
+      <div class="mushroom-stem"></div>
+    </div>
+  </div>
+
+  <div class="mac-bottom">
+    <div class="disk-slot"></div>
+    <div class="mac-badge">FUN STUFF CO.</div>
+  </div>
+</div>
+
+</body>
+</html>
